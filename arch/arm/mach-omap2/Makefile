@@ -287,7 +287,8 @@ obj-$(CONFIG_MACH_NOTLE)		+= board-notle.o \
 					   notle-usb-mux.o
 
 
-obj-$(CONFIG_MACH_PCM049)		+= board-omap4pcm049.o \
+#obj-$(CONFIG_MACH_PCM049)		+= board-omap4pcm049.o
+obj-$(CONFIG_MACH_PCM049)		+= board-omap4ksp5012.o \
 					   board-44xx-serial.o
 
 obj-$(CONFIG_MACH_OMAP3517EVM)		+= board-am3517evm.o
