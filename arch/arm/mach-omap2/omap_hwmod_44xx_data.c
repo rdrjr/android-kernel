@@ -1302,7 +1302,7 @@ static struct omap_mmu_dev_attr omap44xx_dsp_mmu_dev_attr = {
 	 * prevent loss of IOMMU register context during CPU-idle path.
 	 * TODO: Modify value to allow a lower CSWR state.
 	 */
-	.pm_constraint = 10,
+	.pm_constraint = 1000,
 };
 
 static struct omap_hwmod_class omap44xx_dsp_hwmod_class = {
@@ -2443,7 +2443,7 @@ static struct omap_hwmod omap44xx_gpio6_hwmod = {
 	.name		= "gpio6",
 	.class		= &omap44xx_gpio_hwmod_class,
 	.clkdm_name	= "l4_per_clkdm",
-	.flags		= HWMOD_CONTROL_OPT_CLKS_IN_RESET,
+	.flags		= HWMOD_INIT_NO_RESET,
 	.mpu_irqs	= omap44xx_gpio6_irqs,
 	.main_clk	= "gpio6_ick",
 	.prcm = {
@@ -6024,8 +6024,8 @@ static struct omap_hwmod omap44xx_emif1_hwmod = {
 	.clkdm_name	= "l3_emif_clkdm",
 	.prcm		= {
 		.omap4 = {
-			.clkctrl_offs = OMAP4_CM_MEMIF_EMIF_1_CLKCTRL_OFFSET,
-			.context_offs = OMAP4_RM_MEMIF_EMIF_1_CONTEXT_OFFSET,
+			.clkctrl_offs = OMAP4_CM_MEMIF_EMIF_2_CLKCTRL_OFFSET,
+			.context_offs = OMAP4_RM_MEMIF_EMIF_2_CONTEXT_OFFSET,
 			.modulemode   = MODULEMODE_HWCTRL,
 		},
 	},
@@ -6348,7 +6348,7 @@ static __initdata struct omap_hwmod *omap44xx_hwmods[] = {
 	&omap44xx_gpu_hwmod,
 
 	/* hsi class */
-	&omap44xx_hsi_hwmod,
+/*	&omap44xx_hsi_hwmod, */
 
 	/* i2c class */
 	&omap44xx_i2c1_hwmod,
