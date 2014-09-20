@@ -922,7 +922,9 @@ static int _omap4_disable_module(struct omap_hwmod *oh)
 	if (v) {
 		pr_warn("omap_hwmod: %s: _wait_target_disable failed\n",
 			oh->name);
+#ifdef CONFIG_MACH_NOTLE
 		omap_increment_target_disable_failure_count();
+#endif
 	}
 
 	return 0;

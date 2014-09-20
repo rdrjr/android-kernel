@@ -302,12 +302,14 @@ void omap_prcmdebug_dump(int flags)
 	_prcmdebug_dump(NULL, flags);
 }
 
+#ifdef CONFIG_MACH_NOTLE
 const char *omap_board_io_name(int index);
 const char *omap_board_io_use(int index);
 const char *omap_board_wk_name(int index);
 const char *omap_board_wk_use(int index);
 void omap_board_wk_event(int index);
 void omap_board_io_event(int index);
+#endif
 
 #define NR_WAKEUPEVENT_REGS	7
 
@@ -326,14 +328,24 @@ static int prcmdebug_check_omap4_io_wakeirq(const char *action_when)
 			size = 11;
 
 		for_each_set_bit(bit, &wkevt, size) {
+#ifdef CONFIG_MACH_NOTLE
 			pr_info("%s pending I/O pad: Reg - 0x%08X, "\
 				"CONTROL_PADCONF_WAKEUPEVENT_%d[%d] (%s / %s)\n",
 				action_when,
 				d_prcm_regs->control_padconf_wakeupevent0 + i*4,
 				i, bit, omap_board_io_name(i*32 + bit),
 				omap_board_io_use(i*32 + bit));
+#else
+			pr_info("%s pending I/O pad: Reg - 0x%08X, "\
+				"CONTROL_PADCONF_WAKEUPEVENT_%d[%d]\n",
+				action_when,
+				d_prcm_regs->control_padconf_wakeupevent0 + i*4,
+				i, bit);
+#endif
 			iopad_wake_found = 1;
+#ifdef CONFIG_MACH_NOTLE
 			omap_board_io_event(i*32 + bit);
+#endif
 		}
 	}
 
@@ -342,13 +354,22 @@ static int prcmdebug_check_omap4_io_wakeirq(const char *action_when)
 	wkup_pad_event = __raw_readl(OMAP2_L4_IO_ADDRESS(
 			d_prcm_regs->control_wkup_padconf_wakeupevent0));
 	for_each_set_bit(bit, &wkup_pad_event, size) {
+#ifdef CONFIG_MACH_NOTLE
 		pr_info("%s pending wakeup I/O pad: Reg - 0x%08X, "\
 			"CONTROL_WKUP_PADCONF_WAKEUPEVENT_0[%d] (%s / %s)\n",
 			action_when,
 			d_prcm_regs->control_wkup_padconf_wakeupevent0, bit,
 			omap_board_wk_name(bit), omap_board_wk_use(bit));
+#else
+		pr_info("%s pending wakeup I/O pad: Reg - 0x%08X, "\
+			"CONTROL_WKUP_PADCONF_WAKEUPEVENT_0[%d]\n",
+			action_when,
+			d_prcm_regs->control_wkup_padconf_wakeupevent0, bit);
+#endif
 		iopad_wake_found = 1;
+#ifdef CONFIG_MACH_NOTLE
 		omap_board_wk_event(bit);
+#endif
 	}
 
 	return iopad_wake_found;

@@ -34,11 +34,11 @@
 
 #ifdef CONFIG_ION_OMAP
 void omap4_ion_init(void);
-struct ion_platform_data * omap4_ion_get_ion_data_ptr();
+struct ion_platform_data * omap4_ion_get_ion_data_ptr(void);
 void omap4_register_ion(void);
 #else
 static inline void omap4_ion_init(void) { return; }
-struct ion_platform_data * omap4_ion_get_ion_data_ptr() ( return NULL; );
+struct ion_platform_data * omap4_ion_get_ion_data_ptr(void) ( return NULL; );
 static inline void omap4_register_ion(void) { return; }
 #endif
 

@@ -42,7 +42,7 @@ typedef struct
 } libs_regs;
 
 static libs_cmds libs_known_cmds[] = {
-	{ "reset_micro",	{0xA0, 0xA7, 0x7A} },
+	{ "reset_micro",	{0xA0, 0x7A, 0xA7} },
 	{ "enter_bl",		{0xA1, 0x3C, 0xC3} },
 	{ "unlock_nvram",	{0xA2, 0x55, 0xAA} },
 };
@@ -478,9 +478,10 @@ int libs_bat_get_voltage_now(void)
         libs_pwr_i2c_read(libs_client, &reg, 2, data);
 	batt_voltage_now = (data[1] << 8) + data[0];
 
-
-	libs_pwr->batt_prev_voltage = batt_voltage_now;
-	i2c_set_clientdata(libs_client, libs_pwr);
+	if (NULL != libs_pwr) {
+		libs_pwr->batt_prev_voltage = batt_voltage_now;
+		i2c_set_clientdata(libs_client, libs_pwr);
+	}
 
 	return batt_voltage_now;
 }
@@ -534,7 +535,6 @@ static DEVICE_ATTR(min_voltage, 0666, libs_show_bvar_min, libs_store_bvar_min);
 
 static int libs_setup_sysfs(struct i2c_client *client)
 {
-	kobject_create_and_add
 	device_create_file(&client->dev, &dev_attr_read_reg);
 	device_create_file(&client->dev, &dev_attr_write_reg);
 	device_create_file(&client->dev, &dev_attr_cmd);
@@ -585,6 +585,7 @@ static int libs_pwr_probe(struct i2c_client *client,
 	
 	return 0;
 }
+
 static int libs_pwr_remove(struct i2c_client *client)
 {
 	struct libs_pwr_data *libs_pwr;
