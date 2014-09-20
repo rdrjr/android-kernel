@@ -176,7 +176,9 @@ static char *power_state_names[] = {
 	[PWRDM_POWER_OSWR] = "OSWR",
 };
 
+#ifdef CONFIG_MACH_NOTLE
 extern void omap_board_suspend_event(void);
+#endif
 
 static int omap4_5_pm_suspend(void)
 {
