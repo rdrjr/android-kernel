@@ -44,7 +44,6 @@ struct usbhs_omap_board_data {
 	 * Each PHY can have a separate regulator.
 	 */
 	struct regulator		*regulator[OMAP3_HS_USB_PORTS];
-	struct clk			*phy_clk;
 };
 
 struct ehci_hcd_omap_platform_data {
@@ -54,7 +53,6 @@ struct ehci_hcd_omap_platform_data {
 	unsigned			phy_reset:1;
 	struct pm_qos_request		pm_qos_request;
 	int				*usbhs_update_sar;
-	struct clk			*phy_clk;
 };
 
 struct ohci_hcd_omap_platform_data {
