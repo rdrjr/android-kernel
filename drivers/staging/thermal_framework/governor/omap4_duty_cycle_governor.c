@@ -245,7 +245,7 @@ static void omap4_duty_governor_delayed_work_fn(struct work_struct *work)
 	mutex_unlock(&mutex_duty_governor);
 }
 
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) && !defined(CONFIG_MACH_PCM049)
 static int omap4_duty_pm_notifier_cb(struct notifier_block *notifier,
 				     unsigned long pm_event, void *unused)
 {
@@ -309,7 +309,7 @@ void omap4_duty_turbo_sprint_pcb_section_reg(struct pcb_section *pcb_sect, int s
 	turbo_sprint_pcb_sections_size = sect_size;
 }
 
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) && !defined(CONFIG_MACH_PCM049)
 static struct notifier_block omap4_duty_pm_notifier = {
 	.notifier_call = omap4_duty_pm_notifier_cb,
 };
@@ -334,7 +334,7 @@ static int __init omap4_duty_governor_init(void)
 	t_governor->turbo_sprint_tpcb_sections = turbo_sprint_pcb_sections;
 	t_governor->turbo_sprint_npcb_sections = turbo_sprint_pcb_sections_size;
 	t_governor->working_section = INIT_SECTION;
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) && !defined(CONFIG_MACH_PCM049)
 	if (register_pm_notifier(&omap4_duty_pm_notifier))
 		pr_err("%s:omap4_duty_gov pm registration failed!\n", __func__);
 #endif

@@ -597,7 +597,7 @@ static int __init omap4_duty_register(void)
 	return 0;
 }
 
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) && !defined(CONFIG_MACH_PCM049)
 #ifdef CONFIG_PM
 static int omap4_duty_suspend(struct device *dev)
 {

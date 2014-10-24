@@ -526,7 +526,7 @@ int __init arm_add_memory(phys_addr_t start, unsigned long size)
 	bank->start = PAGE_ALIGN(start);
 
 #ifndef CONFIG_LPAE
-#ifdef CONFIG_MACH_NOTLE
+#if defined(CONFIG_MACH_NOTLE) || defined(CONFIG_MACH_PCM049)
        /*
         * Work around the size issue by taking off one page such that
         * 1024 or 2048 Meg will work for the ATAG_MEM use case.

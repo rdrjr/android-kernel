@@ -174,6 +174,7 @@ int __init omap_android_display_setup(struct omap_dss_board_info *dss,
 		.bpp = 4,
 		.width = 1920,
 		.height = 1080,
+
 	};
 
 	if (!sgx || !sgx->num_configs)

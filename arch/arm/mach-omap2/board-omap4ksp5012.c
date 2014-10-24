@@ -108,6 +108,16 @@
 #include "prm-regbits-44xx.h"
 #include "prm44xx.h"
 
+/* for FPGA Version Checking */
+//#include <../fs/file_table.c>
+
+#ifdef CONFIG_REMOTEPROC_USE_CARVEOUT
+#include <linux/ion.h>
+#include <linux/omap_ion.h>
+
+#define DEFAULT_PHYS_ADDR_OFFSET	0x80000000 /* RAM start addr */
+#endif
+
 #define KSP5012_ETH_GPIO_IRQ		121
 #define KSP5012_ETH_CS			5
 #define KSP5012_FT5x06_GPIO_IRQ		107
@@ -136,7 +146,7 @@ static struct gpio_keys_button ksp5012_gpio_keys[] = {
 		.gpio			= GPIO_POWER_BUTTON,
 		.active_low		= 1,
 		.wakeup			= 1,
-		.debounce_interval	= 10,
+		.debounce_interval	= 5,
 	},
 };
 
@@ -449,12 +459,12 @@ static struct omap2_hsmmc_info mmc[] = {
 		.name		= "wl1271",
 		.caps		= MMC_CAP_4_BIT_DATA,
 		.gpio_cd	= -EINVAL,
-//		.ocr_mask	= MMC_VDD_165_195, /* 1V8 */
+		.gpio_wp	= -EINVAL,
+//		.ocr_mask	= MMC_VDD_165_195 | MMC_VDD_20_21, /* 1V8 */
 //		.ocr_mask 	= MMC_VDD_32_33 | MMC_VDD_33_34, /* 3V3 */
-		.built_in	= true,
+		.built_in	= 1,
 		.nonremovable	= true,
 		.init_card	= pcm049_wl1271_init_card,
-		.gpio_wp	= -EINVAL,
 	},
 #endif
 	{}	/* Terminator */
@@ -763,6 +773,41 @@ static struct i2c_board_info __initdata pcm049_i2c_4_boardinfo[] = {
 #endif
 };
 
+#if 0
+#define FPGA_BUF_SIZE 14
+static char* ksp5012_fpga_version_check(void)
+{
+	struct file *f;
+	char* fpgaReg1 = "*r1";
+	char buf[FPGA_BUF_SIZE];
+
+	mm_segment_t fs;
+	fs = get_fs();
+	set_fs(get_ds());
+
+	/* system calls */
+	f = filp_open("/dev/ttyO3",
+		O_RDWR | O_NOCTTY | O_NONBLOCK, 0);
+
+	if (f && f->f_op && f->f_op->write && f->f_op->read) {
+		// write FPGA, access register 1
+		f->f_op->write(f, fpgaReg1, 4, &f->f_pos);
+
+		// read FPGA response (output from register 1)
+		f->f_op->read(f, buf, FPGA_BUF_SIZE, &f->f_pos);
+
+		pr_info("KSP5012 FPGA Version: %s", buf);
+		fput(f);
+	} else {
+		pr_err("%s: failed to open /dev/ttyO3", __func__);
+		buf = NULL;
+	}
+
+	set_fs(fs);
+	return (char*) buf;
+}
+#endif
+
 static void __init omap_i2c_hwspinlock_init(int bus_id, int spinlock_id,
                                 struct omap_i2c_bus_board_data *pdata)
 {
@@ -807,7 +852,7 @@ static int __init pcm049_i2c_init(void)
 			TWL_COMMON_REGULATOR_VANA |
 			TWL_COMMON_REGULATOR_VCXIO |
 			TWL_COMMON_REGULATOR_VUSB |
-//			TWL_COMMON_REGULATOR_CLK32KG |
+			TWL_COMMON_REGULATOR_CLK32KG |
 			TWL_COMMON_REGULATOR_V1V8 |
 			TWL_COMMON_REGULATOR_V2V1 |
 			TWL_COMMON_REGULATOR_SYSEN |
@@ -822,6 +867,8 @@ static int __init pcm049_i2c_init(void)
 
 	/* RTC-8564 IRQ mux */
 	omap_mux_init_gpio(KSP5012_RTC_IRQ, OMAP_PIN_INPUT);
+
+	// TODO: call ksp5012_fpga_version_check
 
 	//some of these should be at 400 rather than 100
 	omap_register_i2c_bus(1, 100, pcm049_i2c_1_boardinfo,
@@ -1018,6 +1065,7 @@ static struct omap_dss_board_info pcm049_dss_data = {
 };
 
 #define PCM049_FB_RAM_SIZE                SZ_16M /* 1920×1080*4 * 2 */
+//#define PCM049_FB_RAM_SIZE	800*480*4*2
 
 static struct dsscomp_platform_data dsscomp_config_pcm049 = {
 	.tiler1d_slotsz = PCM049_FB_RAM_SIZE,
@@ -1042,6 +1090,13 @@ static struct sgx_omaplfb_platform_data omaplfb_plat_data_pcm049 = {
 static struct omapfb_platform_data pcm049_fb_pdata = {
 	.mem_desc = {
 		.region_cnt = ARRAY_SIZE(omaplfb_config_pcm049),
+#ifdef CONFIG_REMOTEPROC_USE_CARVEOUT
+		.region = {
+			[0] = {
+				.size = PCM049_FB_RAM_SIZE,
+			},
+		},
+#endif
 	},
 };
 
@@ -1079,7 +1134,6 @@ static void __init pcm049_ehci_ohci_init(void){}
 static void __init pcm049_display_init(void)
 {
 	omapfb_set_platform_data(&pcm049_fb_pdata);
-	omap_vram_set_sdram_vram(PCM049_FB_RAM_SIZE, 0);
 	omap_mux_init_gpio(KSP5012_LCD_ENABLE, OMAP_PIN_OUTPUT);
 
 	if ((gpio_request(KSP5012_LCD_ENABLE, "DISP_ENA") == 0) &&
@@ -1211,7 +1265,7 @@ struct ti_st_plat_data wilink_pdata = {
 	.nshutdown_gpio = GPIO_BT_EN,
 	.dev_name = "/dev/ttyO1",
 	.flow_cntrl = 1,
-	.baud_rate = 3686400, //115200
+	.baud_rate = 3686400,
 	.suspend = plat_wlink_kim_suspend,
 	.resume = plat_wlink_kim_resume,
 	.chip_enable = plat_uart_enable,
@@ -1342,8 +1396,9 @@ static void __init pcm049_init(void)
 	pcm049_audio_mux_init();
 	omap_create_board_props();
 
-	pcm049_i2c_init();
 	omap4_board_serial_init();
+	pcm049_i2c_init();
+	omap4_register_ion();
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 
 	pcm049_init_smsc911x();
@@ -1354,7 +1409,6 @@ static void __init pcm049_init(void)
 
 	init_duty_governor();
 	omap_init_dmm_tiler();
-	omap4_register_ion();
 	omap_die_governor_register_pdata(&omap_gov_pdata);
 	pcm049_display_init();
 	pcm049_init_nand();
@@ -1393,19 +1447,103 @@ static void __init pcm049_init(void)
 
 static void __init pcm049_reserve(void)
 {
-#if defined(CONFIG_OMAP_RAM_CONSOLE)
-	omap_ram_console_init(OMAP_RAM_CONSOLE_START_DEFAULT,
-			OMAP_RAM_CONSOLE_SIZE_DEFAULT);
+#ifdef CONFIG_REMOTEPROC_USE_CARVEOUT
+	// Compute Carve out sizes based on Memory
+	int i = 0;
+	size_t ram_size = omap_total_ram_size();
+	size_t smc_size = PHYS_ADDR_SMC_SIZE;
+	size_t ion_heap_secure_input_size = OMAP4_ION_HEAP_SECURE_INPUT_SIZE;
+#ifdef CONFIG_OMAP_REMOTEPROC_IPU
+	size_t ipu_heap_size = (SZ_1M * 107);
+#else
+	size_t ipu_heap_size = 0;
 #endif
+#ifdef CONFIG_OMAP_REMOTEPROC_DSP
+	size_t dsp_heap_size  = (SZ_1M * 50);
+#else
+	size_t dsp_heap_size  = 0;
+#endif
+	size_t ion_heap_tiler_size = OMAP4_ION_HEAP_TILER_SIZE;
+	size_t ion_heap_nonsecure_tiler_size = OMAP4_ION_HEAP_NONSECURE_TILER_SIZE;
+	size_t ion_heap_multimedia_size = SZ_1M * (((ram_size >> 20) > 1024) ? 320 : 165);
 
-	omap_rproc_reserve_cma(RPROC_CMA_OMAP4, NULL);
+	// Compute Carve-out addresses
+	phys_addr_t smc_addr = DEFAULT_PHYS_ADDR_OFFSET + ram_size - smc_size;
+	phys_addr_t ion_heap_secure_input_addr = smc_addr - ion_heap_secure_input_size;
+	phys_addr_t ipu_heap_addr = ion_heap_secure_input_addr - ipu_heap_size;
+	phys_addr_t dsp_heap_addr = ipu_heap_addr - dsp_heap_size;
+	phys_addr_t ion_heap_tiler_addr = dsp_heap_addr - ion_heap_tiler_size;
+	phys_addr_t ion_heap_nonsecure_tiler_addr = ion_heap_tiler_addr - ion_heap_nonsecure_tiler_size;
+	phys_addr_t ion_heap_multimedia_addr = ion_heap_nonsecure_tiler_addr - ion_heap_multimedia_size;
+	// Get the ION Platform Data Structure and Update the info.
+	struct ion_platform_data * ion_platform_data_ptr = omap4_ion_get_ion_data_ptr();
+
+	struct omap_rproc_config rproc_config;
+	rproc_config.dsp_address = dsp_heap_addr;
+	rproc_config.dsp_size    = dsp_heap_size;
+	rproc_config.ipu_address = ipu_heap_addr;
+	rproc_config.ipu_size    = ipu_heap_size;
+
+	omap_ram_console_init(OMAP_RAM_CONSOLE_START_DEFAULT,
+		OMAP_RAM_CONSOLE_SIZE_DEFAULT);
+
+	// Figure out the address based on memory
+	printk("KSP5012 Carveout-----------------------\n");
+	printk("Ram Size               : 0x%08x\n", ram_size);
+	printk("physical Offset        : 0x%08x\n", DEFAULT_PHYS_ADDR_OFFSET);
+	printk("SMC Carve Out          : 0x%08x Size: (%08x) \n", smc_addr, smc_size);
+	printk("Ion Secure Heap (I)    : 0x%08x Size: (%08x) \n", ion_heap_secure_input_addr, ion_heap_secure_input_size);
+#ifdef CONFIG_OMAP_REMOTEPROC_IPU
+	printk("IPU Heap               : 0x%08x Size: (%08x) \n", ipu_heap_addr, ipu_heap_size);
+#endif
+#ifdef CONFIG_OMAP_REMOTEPROC_DSP
+	printk("DSP Heap               : 0x%08x Size: (%08x) \n", dsp_heap_addr, dsp_heap_size);
+#endif
+	printk("Tiler Addr             : 0x%08x Size: (%08x) \n", ion_heap_tiler_addr, ion_heap_tiler_size);
+	printk("Tiler non-secure addr  : 0x%08x Size: (%08x) \n", ion_heap_nonsecure_tiler_addr, ion_heap_nonsecure_tiler_size);
+	printk("MultiMedia Heap addr   : 0x%08x Size: (%08x) \n", ion_heap_multimedia_addr, ion_heap_multimedia_size);
+	printk("-------------------------------------\n");
+	// Update OMAP ion carveouts
+	for (i = 0; i < ion_platform_data_ptr->nr; i++) {
+		struct ion_platform_heap *h = &ion_platform_data_ptr->heaps[i];
+		switch (h->id) {
+			case OMAP_ION_HEAP_SECURE_INPUT:
+				h->base = ion_heap_secure_input_addr;
+				h->size = ion_heap_secure_input_size;
+				break;
+			case OMAP_ION_HEAP_NONSECURE_TILER:
+				h->base = ion_heap_nonsecure_tiler_addr;
+				h->size = ion_heap_nonsecure_tiler_size;
+				break;
+			case OMAP_ION_HEAP_TILER:
+				h->base = ion_heap_tiler_addr;
+				h->size = ion_heap_tiler_size;
+				break;
+			case OMAP_ION_HEAP_MULTIMEDIA:
+				h->base = ion_heap_multimedia_addr;
+				h->size = ion_heap_multimedia_size;
+				default:
+				break;
+		}
+		pr_info("%s: %s id=%u [%lx-%lx] size=%x\n",
+			__func__, h->name, h->id,
+			h->base, h->base + h->size, h->size);
+	}
+#endif
 	omap_android_display_setup(&pcm049_dss_data,
 			&dsscomp_config_pcm049,
 			&omaplfb_plat_data_pcm049,
 			&pcm049_fb_pdata);
 
 	omap4_ion_init();
+
+	// Reservations
 	omap4_secure_workspace_addr_default();
+#ifdef CONFIG_REMOTEPROC_USE_CARVEOUT
+	omap_rproc_reserve_cma(RPROC_CMA_OMAP4, &rproc_config);
+#else
+	omap_rproc_reserve_cma(RPROC_CMA_OMAP4, NULL);
+#endif
 	omap_reserve();
 }
 

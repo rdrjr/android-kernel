@@ -33,7 +33,7 @@
 #include "../base.h"
 #include "power.h"
 
-#ifdef CONFIG_MACH_NOTLE
+#if defined(CONFIG_MACH_NOTLE) || defined(CONFIG_MACH_PCM049)
 #include <linux/reboot.h>
 extern int omap_write_reboot_reason(const char* reason);
 #endif
@@ -699,7 +699,7 @@ static void dpm_drv_timeout(unsigned long data)
 	struct device *dev = wd_data->dev;
 	struct task_struct *tsk = wd_data->tsk;
 
-#ifdef CONFIG_MACH_NOTLE
+#if defined(CONFIG_MACH_NOTLE) || defined(CONFIG_MACH_PCM049)
 	/* Record the timed-out device */
 	char buf[16];
 	scnprintf(buf,15,"srto:%s", dev_name(dev));

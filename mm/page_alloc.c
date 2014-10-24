@@ -5207,7 +5207,7 @@ int __meminit init_per_zone_wmark_min(void)
 	min_free_kbytes = int_sqrt(lowmem_kbytes * 16);
 	if (min_free_kbytes < 128)
 		min_free_kbytes = 128;
-#ifdef CONFIG_MACH_NOTLE
+#if defined(CONFIG_MACH_NOTLE) || defined(CONFIG_MACH_PCM049)
 	if (min_free_kbytes < 16384)
 		min_free_kbytes = 16384;
 #endif

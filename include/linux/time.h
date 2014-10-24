@@ -138,10 +138,10 @@ static inline bool timespec_valid_strict(const struct timespec *ts)
 	return true;
 }
 
-#if defined(CONFIG_MACH_NOTLE) || defined(CONFIG_MACH_PCM049)
+#if defined(CONFIG_MACH_NOTLE) // || defined(CONFIG_MACH_PCM049)
 extern u64 read_robust_clock(void);
-#else
-static u64 read_robust_clock(void) { return 0; }
+//#else
+//static u64 read_robust_clock(void) { return 0; }
 #endif
 
 extern void read_persistent_clock(struct timespec *ts);

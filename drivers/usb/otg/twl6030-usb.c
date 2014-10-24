@@ -296,7 +296,7 @@ static void twl6030_hnd_vbus_off(struct work_struct *work)
 
 	if (IS_DATA_STREAM(twl->supply_type))
 		omap_musb_mailbox(OMAP_MUSB_VBUS_OFF);
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) && !defined(CONFIG_MACH_PCM049)
 	regulator_disable(twl->usb3v3);
 	twl6030_enable_ldo_input_supply(twl, false);
 #endif
@@ -423,7 +423,7 @@ static void twl6030_hnd_otg_off(struct work_struct *work)
 	if (ret)
 		return;
 
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) || !defined(CONFIG_MACH_PCM049)
 	regulator_disable(twl->usb3v3);
 	twl6030_enable_ldo_input_supply(twl, false);
 #endif
@@ -524,7 +524,7 @@ static void twl6030_enable_ldo_input_supply(struct twl6030_usb *twl,
 
 	misc2_data = twl6030_readb(twl, TWL6030_MODULE_ID0, TWL6030_MISC2);
 	misc2_data &= ~(VUSB_IN_PMID | VUSB_IN_VBAT);
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) || !defined(CONFIG_MACH_PCM049)
 	if (enable)
 		misc2_data |= VUSB_IN_VBAT;
 #else
@@ -554,7 +554,7 @@ static int twl6030_usb_ldo_init(struct twl6030_usb *twl)
 	 */
 	twl6030_writeb(twl, TWL_MODULE_USB, 0x14, USB_ID_CTRL_SET);
 
-#ifndef CONFIG_MACH_NOTLE
+#if !defined(CONFIG_MACH_NOTLE) || !defined(CONFIG_MACH_PCM049)
 	/* Disable LDO before disabling his input supply */
 	regulator_force_disable(twl->usb3v3);
 	twl6030_enable_ldo_input_supply(twl, false);

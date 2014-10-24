@@ -130,7 +130,7 @@ int __init omap_init_clocksource_32k(void)
 	return 0;
 }
 
-#if defined(CONFIG_MACH_NOTLE) || defined(CONFIG_MACH_PCM049)
+#if defined(CONFIG_MACH_NOTLE)// || defined(CONFIG_MACH_PCM049)
 static u64 accumulated_cycles = 0;
 static cycles_t last_clk_cycles = 0;
 static DEFINE_SPINLOCK(read_robust_clock_lock);
