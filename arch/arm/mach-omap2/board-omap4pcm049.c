@@ -46,10 +46,14 @@
 #include <linux/platform_data/omap4-keypad.h>
 #include <linux/platform_data/omap-abe-tlv320aic3x.h>
 #include <linux/omap4_duty_cycle_governor.h>
+#include <linux/omap_die_governor.h>
+#include <linux/pwm_backlight.h>
+#include <linux/wakelock.h>
 
 #include <sound/tlv320aic3x.h>
 
 #include <mach/hardware.h>
+#include <mach/omap-secure.h>
 #include <asm/hardware/gic.h>
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -63,6 +67,7 @@
 #include <plat/gpmc-smsc911x.h>
 #include <plat/nand.h>
 #include <plat/mmc.h>
+#include <plat/pwm.h>
 #include <plat/remoteproc.h>
 #include <plat/vram.h>
 #include <plat/clock.h>
@@ -81,6 +86,7 @@
 #ifdef CONFIG_PANEL_TC358765
 #include <video/omap-panel-tc358765.h>
 #endif
+
 
 #include "common.h"
 #include "omap4_ion.h"
@@ -241,6 +247,35 @@ static struct platform_device leds_gpio = {
 	},
 };
 
+static struct omap2_pwm_platform_config pwm_config = {
+	.timer_id	= 9, // GPT9_PWM_EVT
+	.polarity	= 1, // Active-high
+};
+
+static struct platform_device pwm_device = {
+	.name	= "omap-pwm",
+	.id	= 0,
+	.dev	= {
+		.platform_data = &pwm_config
+	},
+};
+
+static struct platform_pwm_backlight_data pcm049_backlight_data = {
+	.pwm_id         = 0,
+	.max_brightness = 255,
+	.dft_brightness = 127,
+	.pwm_period_ns  = 1000,
+};
+
+static struct platform_device pcm049_backlight_device = {
+	.name   = "pwm-backlight",
+	.id	= -1,
+	.dev    = {
+		.parent = &pwm_device.dev,
+		.platform_data  = &pcm049_backlight_data,
+	},
+};
+
 #ifdef CONFIG_OMAP4_DUTY_CYCLE_GOVERNOR
 static struct pcb_section omap4_duty_governor_pcb_sections[] = {
 	{
@@ -265,6 +300,20 @@ static void init_duty_governor(void)
 #else
 static void init_duty_governor(void){}
 #endif /*CONFIG_OMAP4_DUTY_CYCLE*/
+
+/* Initial set of thresholds for different thermal zones */
+static struct omap_thermal_zone thermal_zones[] = {
+	OMAP_THERMAL_ZONE("safe", 0, 25000, 65000, 250, 1000, 400),
+	OMAP_THERMAL_ZONE("monitor", 0, 60000, 80000, 250, 250, 250),
+	OMAP_THERMAL_ZONE("alert", 0, 75000, 90000, 250, 250, 150),
+	OMAP_THERMAL_ZONE("critical", 1, 85000, 115000, 250, 250, 50),
+};
+
+static struct omap_die_governor_pdata omap_gov_pdata = {
+	.zones = thermal_zones,
+	.zones_num = ARRAY_SIZE(thermal_zones),
+};
+
 
 static void __init pcm049_audio_mux_init(void)
 {
@@ -535,6 +584,7 @@ static int pcm049_hsmmc_late_init(struct device *dev)
 		dev_err(dev, "%s: NULL platform data\n", __func__);
 		return -EINVAL;
 	}
+
 	/* Setting MMC1 Card detect Irq */
 	if (pdev->id == 0) {
 		ret = twl6030_mmc_card_detect_config();
@@ -647,6 +697,8 @@ static struct platform_device *pcm049_devices[] __initdata = {
 	&pcm049_vcc_1v8_device,
 	&pcm049_abe_audio_device,
 	&leds_gpio,
+	&pwm_device,
+	&pcm049_backlight_device,
 };
 
 static struct at24_platform_data board_eeprom = {
@@ -968,6 +1020,8 @@ static struct omap_board_mux board_mux[] __initdata = {
 	OMAP4_MUX(DPM_EMU18, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
 	/* dispc2_data0 */
 	OMAP4_MUX(DPM_EMU19, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
+	/* dmtimer9_pwm_evt */
+	OMAP4_MUX(ABE_DMIC_DIN3, OMAP_PIN_OUTPUT | OMAP_MUX_MODE5),
 #endif	/* ifdef CONFIG_OMAP2_DSS_DPI */
 	OMAP4_MUX(SYS_NIRQ1, OMAP_MUX_MODE0 | OMAP_PIN_INPUT_PULLUP |
 				OMAP_PIN_OFF_WAKEUPENABLE),
@@ -1125,8 +1179,35 @@ static struct omap_dss_board_info pcm049_dss_data = {
 
 #define PCM049_FB_RAM_SIZE                SZ_16M /* 1920×1080*4 * 2 */
 
+static struct dsscomp_platform_data dsscomp_config_pcm049 = {
+	.tiler1d_slotsz = PCM049_FB_RAM_SIZE,
+};
+
+static struct sgx_omaplfb_config omaplfb_config_pcm049[] = {
+
+	{
+		.tiler2d_buffers = 2,
+		.swap_chain_length = 2,
+	},
+	{
+		.vram_buffers = 2,
+		.swap_chain_length = 2,
+	},
+};
+
+static struct sgx_omaplfb_platform_data omaplfb_plat_data_pcm049 = {
+	.num_configs = ARRAY_SIZE(omaplfb_config_pcm049),
+	.configs = omaplfb_config_pcm049,
+};
+
+static struct omapfb_platform_data pcm049_fb_pdata = {
+	.mem_desc = {
+		.region_cnt = ARRAY_SIZE(omaplfb_config_pcm049),
+	},
+};
+
 #if defined(CONFIG_USB_EHCI_HCD_OMAP) || defined(CONFIG_USB_OHCI_HCD_OMAP3)
-static struct usbhs_omap_board_data usbhs_bdata __initconst = {
+static const struct usbhs_omap_board_data usbhs_bdata __initconst = {
 	.port_mode[0] = OMAP_EHCI_PORT_MODE_PHY,
 	.port_mode[1] = OMAP_USBHS_PORT_MODE_UNUSED,
 	.port_mode[2] = OMAP_USBHS_PORT_MODE_UNUSED,
@@ -1159,11 +1240,10 @@ static void __init pcm049_ehci_ohci_init(void){}
 
 static void __init pcm049_display_init(void)
 {
-#ifdef CONFIG_OMAP2_DSS_DSI
-	u32 reg;
-#endif
-	omap_vram_set_sdram_vram(PCM049_FB_RAM_SIZE, 0);
+	omapfb_set_platform_data(&pcm049_fb_pdata);
+//	omap_vram_set_sdram_vram(PCM049_FB_RAM_SIZE, 0);
 	omap_mux_init_gpio(OMAP4_PCM049_LCD_ENABLE, OMAP_PIN_OUTPUT);
+
 	if ((gpio_request(OMAP4_PCM049_LCD_ENABLE, "DISP_ENA") == 0) &&
 		(gpio_direction_output(OMAP4_PCM049_LCD_ENABLE, 1) == 0)) {
 		gpio_export(OMAP4_PCM049_LCD_ENABLE, 0);
@@ -1188,44 +1268,109 @@ static void __init pcm049_display_init(void)
 #endif
 }
 
+#if defined(CONFIG_TI_EMIF) || defined(CONFIG_TI_EMIF_MODULE)
+static struct __devinitdata emif_custom_configs custom_configs = {
+	.mask   = EMIF_CUSTOM_CONFIG_LPMODE,
+	.lpmode = EMIF_LP_MODE_SELF_REFRESH,
+	.lpmode_timeout_performance = 512,
+	.lpmode_timeout_power = 512,
+	/* only at OPP100 should we use performance value */
+	.lpmode_freq_threshold = 400000000,
+};
+#endif
+
+static void __init emif_setup_device_details(unsigned long base)
+{
+	unsigned long cs1_used;
+	unsigned char *emif;
+
+	emif = ioremap(base, SZ_256);
+
+	cs1_used = (readl(emif + EMIF_SDRAM_CONFIG) & EBANK_MASK)
+			>> EBANK_SHIFT;
+
+	if (memblock_phys_mem_size() > SZ_512M) {
+		if (cs1_used) {
+			omap_emif_set_device_details(1,
+			&lpddr2_nanya_8G_S4_x2_info,
+			lpddr2_elpida_2G_S4_timings,
+			ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+			&lpddr2_elpida_S4_min_tck, &custom_configs);
+
+			omap_emif_set_device_details(2,
+			&lpddr2_nanya_8G_S4_x2_info,
+			lpddr2_elpida_2G_S4_timings,
+			ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+			&lpddr2_elpida_S4_min_tck, &custom_configs);
+			printk(KERN_INFO "%s: "
+				"registered Nanya LPDDR_S4 1GB RAM with 2 CS\n",
+				__func__);
+		} else {
+			omap_emif_set_device_details(1,
+			&lpddr2_nanya_8G_S4_x2_1CS_info,
+			lpddr2_elpida_2G_S4_timings,
+			ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+			&lpddr2_elpida_S4_min_tck, &custom_configs);
+
+			omap_emif_set_device_details(2,
+			&lpddr2_nanya_8G_S4_x2_1CS_info,
+			lpddr2_elpida_2G_S4_timings,
+			ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+			&lpddr2_elpida_S4_min_tck, &custom_configs);
+			printk(KERN_INFO "%s: "
+				"registered Nanya LPDDR_S4 1GB RAM with 1 CS\n",
+				__func__);
+		}
+	} else {
+		omap_emif_set_device_details(1, &lpddr2_nanya_4G_S4_x2_info,
+		lpddr2_elpida_2G_S4_timings,
+		ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+		&lpddr2_elpida_S4_min_tck, &custom_configs);
+
+		omap_emif_set_device_details(2, &lpddr2_nanya_4G_S4_x2_info,
+		lpddr2_elpida_2G_S4_timings,
+		ARRAY_SIZE(lpddr2_elpida_2G_S4_timings),
+		&lpddr2_elpida_S4_min_tck, &custom_configs);
+		printk(KERN_INFO
+			"%s: registered Nanya LPDDR_S4 512MB RAM\n", __func__);
+	}
+}
+
 static void __init pcm049_init(void)
 {
 	int status;
 
+	emif_setup_device_details(0x4C000000);
+
 	omap4_mux_init(board_mux, NULL, OMAP_PACKAGE_CBS);
+
 	omap_mux_init_signal("fref_clk4_req", OMAP_MUX_MODE1);
 	pcm049_audio_mux_init();
 	omap_create_board_props();
-	pcm049_i2c_init();
 
+	pcm049_i2c_init();
+	omap4_board_serial_init();
 	platform_add_devices(pcm049_devices, ARRAY_SIZE(pcm049_devices));
 
-	omap4_board_serial_init();
 	pcm049_init_smsc911x();
-#if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
-	pcm049_wifi_init();
-#endif
 	pcm049_hsmmc_init(mmc);
+
 	pcm049_ehci_ohci_init();
 	omap_mux_init_gpio(OMAP4_PCM049_OTG_VBUS, 0);
 	if (gpio_request(OMAP4_PCM049_OTG_VBUS, "OTG_VBUS") == 0)
 		gpio_direction_output(OMAP4_PCM049_OTG_VBUS, 0);
 	usb_musb_init(&musb_board_data);
 
-#if 0
-	// The keypad is disabled by default
-	pcm049_keyboard_mux_init();
-	status = omap4_keyboard_init(&pcm049_keypad_data, &keypad_data);
-	if (status)
-		pr_err("Keypad initialization failed: %d\n", status);
-#endif
-
+	init_duty_governor();
 	omap_init_dmm_tiler();
 	omap4_register_ion();
+	omap_die_governor_register_pdata(&omap_gov_pdata);
 	pcm049_display_init();
-	init_duty_governor();
-
 	pcm049_init_nand();
+
+#if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
+	pcm049_wifi_init();
+#endif
 
 	if (cpu_is_omap446x()) {
 		/* Vsel0 = gpio, vsel1 = gnd */
@@ -1234,6 +1379,8 @@ static void __init pcm049_init(void)
 		if (status)
 			pr_err("TPS62361 initialization failed: %d\n", status);
 	}
+
+	/* SOM status LEDs */
 	omap_mux_init_gpio(152, OMAP_PIN_OUTPUT);
 	omap_mux_init_gpio(153, OMAP_PIN_OUTPUT);
 
@@ -1268,9 +1415,22 @@ static void __init pcm049_reserve(void)
 	omap_ram_console_init(OMAP_RAM_CONSOLE_START_DEFAULT,
 			OMAP_RAM_CONSOLE_SIZE_DEFAULT);
 #endif
+
 	omap_rproc_reserve_cma(RPROC_CMA_OMAP4);
+	omap_android_display_setup(&pcm049_dss_data,
+			&dsscomp_config_pcm049,
+			&omaplfb_plat_data_pcm049,
+			&pcm049_fb_pdata);
+
 	omap4_ion_init();
 	omap_reserve();
+}
+
+static void __init pcm049_init_early(void)
+{
+	omap4430_init_early();
+	if (cpu_is_omap446x())
+		omap_tps6236x_gpio_no_reset_wa(TPS62361_GPIO, -1, 32);
 }
 
 MACHINE_START(PCM049, "pcm049")
@@ -1278,7 +1438,7 @@ MACHINE_START(PCM049, "pcm049")
 	.atag_offset	= 0x100,
 	.reserve	= pcm049_reserve,
 	.map_io		= omap4_map_io,
-	.init_early	= omap4430_init_early,
+	.init_early	= pcm049_init_early,
 	.init_irq	= gic_init_irq,
 	.handle_irq	= gic_handle_irq,
 	.init_machine	= pcm049_init,
