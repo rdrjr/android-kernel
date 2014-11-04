@@ -109,6 +109,10 @@
 #define TPS62361_GPIO			182	/* VCORE1 power control */
 #define	HDMI_GPIO_HPD			63
 
+#define EMIF_SDRAM_CONFIG		0x0008
+#define EBANK_SHIFT			3
+#define EBANK_MASK			(1 << 3)
+
 #if 0
 // The keypad is disabled by default in favour of using the on-screeen
 // Navigation Bar.
@@ -1207,7 +1211,7 @@ static struct omapfb_platform_data pcm049_fb_pdata = {
 };
 
 #if defined(CONFIG_USB_EHCI_HCD_OMAP) || defined(CONFIG_USB_OHCI_HCD_OMAP3)
-static const struct usbhs_omap_board_data usbhs_bdata __initconst = {
+static struct usbhs_omap_board_data usbhs_bdata __initconst = {
 	.port_mode[0] = OMAP_EHCI_PORT_MODE_PHY,
 	.port_mode[1] = OMAP_USBHS_PORT_MODE_UNUSED,
 	.port_mode[2] = OMAP_USBHS_PORT_MODE_UNUSED,
