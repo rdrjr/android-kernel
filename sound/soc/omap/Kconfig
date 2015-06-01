@@ -152,7 +152,7 @@ config SND_OMAP_SOC_PCM049
 	  phyCORE-OMAP44xx.
 
 config SND_OMAP_SOC_KSP5012
-	tristate "SoC Audio support for Phytec KSP-5012"
+	tristate "SoC Audio support for Phytec KSP-5012 and KSP-5014"
 	depends on MACH_PCM049
 	depends on SND_OMAP_SOC
 	select SND_OMAP_SOC_ABE
