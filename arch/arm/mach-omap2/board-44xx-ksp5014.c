@@ -113,16 +113,67 @@
 #define GPIO_BT_EN			173
 #define GPIO_POWER_BUTTON		139
 
+#define GPIO_KEY_UP			115
+#define GPIO_KEY_DOWN			181
+#define GPIO_KEY_LEFT			138
+#define GPIO_KEY_RIGHT			118
+#define GPIO_KEY_ENTER			110
+
 #define EMIF_SDRAM_CONFIG		0x0008
 #define EBANK_SHIFT			3
 #define EBANK_MASK			(1 << 3)
 
 static struct gpio_keys_button ksp5014_gpio_keys[] = {
 	{
-		.desc			= "power_button",
+		.desc			= "PWR",
 		.type 			= EV_KEY,
 		.code			= KEY_POWER,
 		.gpio			= GPIO_POWER_BUTTON,
+		.active_low		= 1,
+		.wakeup			= 1,
+		.debounce_interval	= 5,
+	},
+	{
+		.desc			= "UP",
+		.type			= EV_KEY,
+		.code			= KEY_UP,
+		.gpio			= GPIO_KEY_UP,
+		.active_low		= 1,
+		.wakeup			= 1,
+		.debounce_interval	= 5,
+	},
+	{
+		.desc			= "DOWN",
+		.type			= EV_KEY,
+		.code			= KEY_DOWN,
+		.gpio			= GPIO_KEY_DOWN,
+		.active_low		= 1,
+		.wakeup			= 1,
+		.debounce_interval	= 5,
+	},
+	{
+		.desc			= "LEFT",
+		.type			= EV_KEY,
+		.code			= KEY_LEFT,
+		.gpio			= GPIO_KEY_LEFT,
+		.active_low		= 1,
+		.wakeup			= 1,
+		.debounce_interval	= 5,
+	},
+	{
+		.desc			= "RIGHT",
+		.type			= EV_KEY,
+		.code			= KEY_RIGHT,
+		.gpio			= GPIO_KEY_RIGHT,
+		.active_low		= 1,
+		.wakeup			= 1,
+		.debounce_interval	= 5,
+	},
+	{
+		.desc			= "ENTER",
+		.type			= EV_KEY,
+		.code			= KEY_ENTER,
+		.gpio			= GPIO_KEY_ENTER,
 		.active_low		= 1,
 		.wakeup			= 1,
 		.debounce_interval	= 5,
@@ -800,6 +851,24 @@ static struct omap_board_mux board_mux[] __initdata = {
 
 	/* Wake signal */
 	OMAP4_MUX(MCSPI1_CS2, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_139
+	/* FIXME: reworked WAKE_3V3 signal */
+	OMAP4_MUX(UART4_TX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_156
+
+	/* KEY_START */
+	OMAP4_MUX(ABE_MCBSP2_DX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_112
+	/* KEY_INTERLOCK */
+	OMAP4_MUX(ABE_MCBSP1_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_114
+
+	/* KEY_UP */
+	OMAP4_MUX(ABE_MCBSP1_DR, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_115
+	/* KEY_DOWN */
+	OMAP4_MUX(FREF_CLK1_OUT, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_181
+	/* KEY_LEFT */
+	OMAP4_MUX(MCSPI1_CS1, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_138
+	/* KEY_RIGHT */
+	OMAP4_MUX(ABE_CLKS, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_118
+	/* KEY_ENTER */
+	OMAP4_MUX(ABE_MCBSP2_CLKX, OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP | OMAP_WAKEUP_EN), //GPIO_110
 
 	/* GPS ON-OFF */
 	OMAP4_MUX(UNIPRO_TY0, OMAP_MUX_MODE3 | OMAP_PIN_OUTPUT), // GPIO_172
