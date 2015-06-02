@@ -658,6 +658,13 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		I2C_BOARD_INFO("at24", 0x50),
 		.platform_data = &board_eeprom,
 	},
+	{
+		I2C_BOARD_INFO("rtc8564", 0x51),
+		.irq = OMAP_GPIO_IRQ(KSP5014_RTC_IRQ),
+	},
+	{
+		I2C_BOARD_INFO("libs_pwr", 0x59),
+	},
 };
 
 /*
