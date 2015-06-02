@@ -27,7 +27,6 @@
 #include <linux/hwspinlock.h>
 #include <linux/i2c/twl.h>
 #include <linux/i2c/at24.h>
-#include <linux/i2c/tmp102.h>
 #include <linux/mmc/card.h>
 #ifdef CONFIG_TOUCHSCREEN_FT5X06
 #include <linux/input/ft5x06_ts.h>
@@ -43,7 +42,6 @@
 #include <linux/gpio_keys.h>
 #include <linux/leds-pca9532.h>
 #include <linux/platform_data/omap-abe-wm8974.h>
-#include <linux/omap4_duty_cycle_governor.h>
 #include <linux/omap_die_governor.h>
 
 #include <linux/pwm_backlight.h>
@@ -247,31 +245,6 @@ static struct platform_device ksp5014_backlight_device = {
 		.platform_data  = &ksp5014_backlight_data,
 	},
 };
-
-#ifdef CONFIG_OMAP4_DUTY_CYCLE_GOVERNOR
-static struct pcb_section omap4_duty_governor_pcb_sections[] = {
-	{
-		.pcb_temp_level			= DUTY_GOVERNOR_DEFAULT_TEMP,
-		.max_opp			= 1200000,
-		.duty_cycle_enabled		= true,
-		.tduty_params = {
-			.nitro_rate		= 1200000,
-			.cooling_rate		= 1008000,
-			.nitro_interval		= 20000,
-			.nitro_percentage	= 24,
-		},
-	},
-};
-
-static void init_duty_governor(void)
-{
-	omap4_duty_pcb_section_reg(omap4_duty_governor_pcb_sections,
-				   ARRAY_SIZE
-				   (omap4_duty_governor_pcb_sections));
-}
-#else
-static void init_duty_governor(void){}
-#endif /*CONFIG_OMAP4_DUTY_CYCLE*/
 
 /* Initial set of thresholds for different thermal zones */
 static struct omap_thermal_zone thermal_zones[] = {
@@ -629,18 +602,6 @@ static struct at24_platform_data board_eeprom = {
 	.flags = AT24_FLAG_ADDR16,
 };
 
-/* TMP102 PCB Temperature sensor close to OMAP
- * values for .slope and .offset are taken from OMAP5 structure,
- * as TMP102 sensor was not used by domains other then CPU
- */
-static struct tmp102_platform_data tmp102_omap_info = {
-	.slope = 470,
-	.slope_cpu = 1063,
-	.offset = -1272,
-	.offset_cpu = -477,
-	.domain = "pcb", /* for hotspot extrapolation */
-};
-
 #ifdef CONFIG_TOUCHSCREEN_FT5X06
 static struct ft5x0x_ts_platform_data pba_ft5x06_pdata = {
 	.irq_pin	= KSP5014_FT5x06_GPIO_IRQ,
@@ -696,10 +657,6 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("at24", 0x50),
 		.platform_data = &board_eeprom,
-	},
-	{
-		I2C_BOARD_INFO("tmp102_temp_sensor", 0x4B),
-		.platform_data = &tmp102_omap_info,
 	},
 };
 
@@ -1299,7 +1256,6 @@ static void __init pcm049_init(void)
 	pcm049_ehci_ohci_init();
 	usb_musb_init(&musb_board_data);
 
-	init_duty_governor();
 	omap_init_dmm_tiler();
 	omap4_register_ion();
 	omap_die_governor_register_pdata(&omap_gov_pdata);
