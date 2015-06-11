@@ -1,3 +1,26 @@
+/*
+ * LIBs Power Micro Protocol Driver
+ *
+ * Copyright (C) 2014 Russell Robinsion <rrobinson@phytec.com>
+ *
+ * This package is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+ *
+ * THIS PACKAGE IS PROVIDED "AS IS" AND WITHOUT ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED
+ * WARRANTIES OF MERCHANTIBILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+ *
+ */
+
+/* Allows sysfs access for PIC registers as specified
+ * in the LIBs Power Micro Protocol REV 1.3
+ *
+ * OPTIONAL: use CONFIG_BATTERY_ANDROID=y to enable the
+ * workaround to relay battery information from PIC ADCs
+ * to the power supply API for gas gauge control
+ */
+
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/module.h>

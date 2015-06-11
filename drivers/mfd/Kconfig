@@ -976,6 +976,16 @@ config MFD_LIBS_PWR
 
 	  If unsure, say N.
 
+config MFD_RAMAN_PWR
+	tristate "Sciaps Raman Power Board Micro"
+	depends on I2C && MACH_PCM049
+	default n
+	help
+	  If you say yes here you enable sysfs support for Sciaps' Raman
+	  Power Board PIC16F1527 based on protocol REV 0.1.
+
+	  If unsure, say N.
+
 endmenu
 endif
 

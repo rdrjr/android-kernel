@@ -128,3 +128,4 @@ obj-$(CONFIG_MFD_PALMAS_PWM)	+= palmas-pwm.o
 obj-$(CONFIG_MFD_PALMAS_POWEROFF) += palmas-poweroff.o
 
 obj-$(CONFIG_MFD_LIBS_PWR)	+= libs_pwr.o
+obj-$(CONFIG_MFD_RAMAN_PWR)	+= raman_pwr.o

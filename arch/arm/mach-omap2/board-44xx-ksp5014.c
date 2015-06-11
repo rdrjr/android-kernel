@@ -679,7 +679,7 @@ static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
 		.irq = OMAP_GPIO_IRQ(KSP5014_RTC_IRQ),
 	},
 	{
-		I2C_BOARD_INFO("libs_pwr", 0x59),
+		I2C_BOARD_INFO("raman_pwr", 0x59),
 	},
 };
 
