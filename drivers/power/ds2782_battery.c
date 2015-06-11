@@ -119,6 +119,10 @@ static int ds2782_get_current(struct ds278x_info *info, int *current_uA)
 	 * The units of measurement for current are dependent on the value of
 	 * the sense resistor.
 	 */
+
+	/* FIXME: RR: get sense resistor value stored on device
+         * 	: value should be stored as conductance
+	 *	: i.e. 1/RSNSP -> 1/(10*(10^-3)) = 100 = 0x64 = 0b01100100
 	err = ds278x_read_reg(info, DS2782_REG_RSNSP, &sense_res_raw);
 	if (err)
 		return err;
@@ -126,6 +130,8 @@ static int ds2782_get_current(struct ds278x_info *info, int *current_uA)
 		dev_err(&info->client->dev, "sense resistor value is 0\n");
 		return -ENXIO;
 	}
+	*/
+	sense_res_raw = 100;
 	sense_res = 1000 / sense_res_raw;
 
 	dev_dbg(&info->client->dev, "sense resistor = %d milli-ohms\n",
