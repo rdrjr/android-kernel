@@ -127,10 +127,9 @@ static struct spi_board_info ksp5014_spi_board_info[] __initdata = {
 	{
 		/* CPLD on KSP5014 */
 		.modalias               = "spidev",
-		.bus_num                = 0,
+		.bus_num                = 1,
 		.chip_select            = 0,
-		.irq			= OMAP_GPIO_IRQ(KSP5014_CPLD_IRQ),
-		.max_speed_hz           = 30000000,
+		.max_speed_hz           = 24000000,
 	},
 };
 
@@ -1295,14 +1294,14 @@ static void __init pcm049_init(void)
 	pcm049_display_init();
 	pcm049_init_nand();
 
-	spi_register_board_info(ksp5014_spi_board_info,
-				ARRAY_SIZE(ksp5014_spi_board_info));
-
-
 #if defined(CONFIG_WL12XX) || defined(CONFIG_WL12XX_MODULE)
 	pcm049_wl12xx_init();
 	ksp5014_btwilink_init();
 #endif
+
+	spi_register_board_info(ksp5014_spi_board_info,
+				ARRAY_SIZE(ksp5014_spi_board_info));
+
 
 	if (cpu_is_omap446x()) {
 		/* Vsel0 = gpio, vsel1 = gnd */
