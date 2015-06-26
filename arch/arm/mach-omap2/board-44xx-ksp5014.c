@@ -660,9 +660,11 @@ static struct adxl34x_platform_data adxl34x_info = {
 #endif
 
 static struct i2c_board_info __initdata pcm049_i2c_1_boardinfo[] = {
+/*
 	{
 		I2C_BOARD_INFO("ds2782", 0x34),
 	},
+*/
 	{
 		I2C_BOARD_INFO("twl6030", 0x48),
 		.flags = I2C_CLIENT_WAKE,
