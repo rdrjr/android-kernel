@@ -72,6 +72,7 @@ static int ksp5012_startup(struct snd_pcm_substream *substream)
 	snd_pcm_hw_constraint_minmax(runtime,
 				     SNDRV_PCM_HW_PARAM_CHANNELS, 1, 2);
 
+	snd_soc_dapm_enable_pin(&codec->dapm, "Mic Jack");
 	ksp5012_ext_control(codec);
 	return clk_enable(pdata->clk);
 }
@@ -83,6 +84,7 @@ static void ksp5012_shutdown(struct snd_pcm_substream *substream)
 	struct snd_soc_card *card = rtd->card;
 	struct omap_abe_wm8974_data *pdata = dev_get_platdata(card->dev);
 
+	snd_soc_dapm_disable_pin(&codec->dapm, "Mic Jack");
 	clk_disable(pdata->clk);
 }
 
@@ -254,14 +256,18 @@ static int ksp5012_spk_event(struct snd_soc_dapm_widget *w,
 
 static const struct snd_soc_dapm_widget wm8974_dapm_widgets[] = {
 	SND_SOC_DAPM_SPK("Ext Spk", ksp5012_spk_event),
+	SND_SOC_DAPM_MIC("Mic Jack", NULL),
 };
 
 static const struct snd_soc_dapm_route audio_map[] = {
 	{"Ext Spk", NULL, "SPKOUTP"},
 	{"Ext Spk", NULL, "SPKOUTN"},
+
+	{"MICN", NULL, "Mic Jack"},
 };
 
 static const char *spk_function[] = {"On", "Off"};
+
 static const struct soc_enum ksp5012_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(spk_function), spk_function),
 };
@@ -279,13 +285,12 @@ static int ksp5012_wm8974_init(struct snd_soc_pcm_runtime *rtd)
 	int err;
 
 	/* Not connected */
-	snd_soc_dapm_nc_pin(dapm, "MICN");
-	snd_soc_dapm_nc_pin(dapm, "MICP");
 	snd_soc_dapm_nc_pin(dapm, "AUX");
 	snd_soc_dapm_nc_pin(dapm, "MONOOUT");
 
 	/* allow audio paths from the audio modem to run during suspend */
 	snd_soc_dapm_ignore_suspend(&card->dapm, "Ext Spk");
+	snd_soc_dapm_ignore_suspend(&card->dapm, "Mic Jack");
 
 
 	/* Add board specific controls */
